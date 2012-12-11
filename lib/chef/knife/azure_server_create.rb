@@ -45,7 +45,6 @@ class Chef
       option :azure_bootstrap_protocol,
         :long => "--bootstrap-protocol protocol",
         :description => "Protocol to bootstrap windows servers. options: winrm/ssh",
-        :default => "winrm",
         :proc => Proc.new { |protocol| Chef::Config[:knife][:azure_bootstrap_protocol] = protocol }
 
       option :chef_node_name,
@@ -146,6 +145,7 @@ class Chef
         :short => "-z SIZE",
         :long => "--role-size SIZE",
         :description => "size of virtual machine (ExtraSmall, Small, Medium, Large, ExtraLarge)"
+        :default => "Small"
 
       option :azure_tcp_endpoints,
         :short => "-t PORT_LIST",
@@ -391,6 +391,12 @@ class Chef
       end
 
       def validate!
+        if is_image_windows?
+          if not locate_config_value(:azure_bootstrap_protocol)
+            ui.error("Please specify a bootstrap protocol for Windows Images")
+            exit 1
+          end
+        end
         super([
               :azure_subscription_id,
               :azure_mgmt_cert,
@@ -412,16 +418,15 @@ class Chef
           :service_location => locate_config_value(:azure_service_location),
           :os_disk_name => locate_config_value(:azure_os_disk_name),
           :source_image => locate_config_value(:azure_source_image),
-          :role_size => locate_config_value(:role_size),
+          :role_size => locate_config_value(:azure_role_size),
           :tcp_endpoints => locate_config_value(:azure_tcp_endpoints),
           :udp_endpoints => locate_config_value(:azure_udp_endpoints),
-          :bootstrap_proto => locate_config_value(:azure_bootstrap_protocol)
         }
 
         if is_image_windows?
           server_def[:os_type] = 'Windows'
           server_def[:admin_password] = locate_config_value(:winrm_password)
-          server_def[:bootstrap_proto] = locate_config_value(:azure_bootstrap_protocol)
+          server_def[:bootstrap_proto] = locate_config_value(:azure_bootstrap_protocol) || 'winrm'
         else
           server_def[:os_type] = 'Linux'
           server_def[:bootstrap_proto] = 'ssh'
