@@ -102,6 +102,11 @@ class Chef
         :boolean => true,
         :default => true
 
+      option :azure_server_url,
+        :long => '--server-url URL',
+        :short => '-H URL',
+        :description => "Endpoint Server URL"
+
       option :azure_hosted_service_name,
         :short => "-s NAME",
         :long => "--hosted-service-name NAME",
@@ -144,7 +149,7 @@ class Chef
       option :azure_role_size,
         :short => "-z SIZE",
         :long => "--role-size SIZE",
-        :description => "size of virtual machine (ExtraSmall, Small, Medium, Large, ExtraLarge)"
+        :description => "size of virtual machine (ExtraSmall, Small, Medium, Large, ExtraLarge)",
         :default => "Small"
 
       option :azure_tcp_endpoints,
@@ -230,7 +235,7 @@ class Chef
           :azure_ssh_password,
           :azure_service_location,
           :azure_source_image,
-          :role_size
+          :azure_role_size
         ].each do |key|
           key = key.to_sym
           details << key.to_s
@@ -252,7 +257,6 @@ class Chef
         validate!
 
         Chef::Log.info("creating...")
-        Chef::Log.info("Using the #{locate_config_value(:azure_bootstrap_protocol)} protocol for bootstrapping")
         if not locate_config_value(:azure_hosted_service_name)
           config[:azure_hosted_service_name] = [strip_non_ascii(locate_config_value(:azure_role_name)), random_string].join
         end
@@ -405,22 +409,22 @@ class Chef
               :host_name,
               :azure_service_location,
               :azure_source_image,
-              :role_size
+              :azure_role_size
         ])
       end
 
       def create_server_def
         server_def = {
-          :hosted_service_name => locate_config_value(:azure_hosted_service_name),
-          :storage_account => locate_config_value(:azure_storage_account),
-          :role_name => locate_config_value(:azure_role_name),
-          :host_name => locate_config_value(:host_name),
-          :service_location => locate_config_value(:azure_service_location),
-          :os_disk_name => locate_config_value(:azure_os_disk_name),
-          :source_image => locate_config_value(:azure_source_image),
-          :role_size => locate_config_value(:azure_role_size),
-          :tcp_endpoints => locate_config_value(:azure_tcp_endpoints),
-          :udp_endpoints => locate_config_value(:azure_udp_endpoints),
+          :azure_hosted_service_name => locate_config_value(:azure_hosted_service_name),
+          :azure_storage_account => locate_config_value(:azure_storage_account),
+          :azure_role_name => locate_config_value(:azure_role_name),
+          :azure_host_name => locate_config_value(:host_name),
+          :azure_service_location => locate_config_value(:azure_service_location),
+          :azure_os_disk_name => locate_config_value(:azure_os_disk_name),
+          :azure_source_image => locate_config_value(:azure_source_image),
+          :azure_role_size => locate_config_value(:azure_role_size),
+          :azure_tcp_endpoints => locate_config_value(:azure_tcp_endpoints),
+          :azure_udp_endpoints => locate_config_value(:azure_udp_endpoints),
         }
 
         if is_image_windows?
