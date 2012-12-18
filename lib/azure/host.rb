@@ -46,7 +46,7 @@ class Azure
     def delete(name)
       if self.exists name
           servicecall = "hostedservices/" + name
-        @connection.query_azure(servicecall, "delete") 
+        @connection.query_azure(servicecall, "delete")
       end
     end
   end
@@ -81,7 +81,12 @@ class Azure
           xml.Location params[:service_location] || 'West US'
         }
       end
-      @connection.query_azure("hostedservices", "post", builder.to_xml)
+      ret_val = @connection.query_azure("hostedservices", "post", builder.to_xml)
+      if ret_val.css('Error Code').length > 0
+        Chef::Log.fatal 'Unable to create hosted services:' + ret_val.at_css('Error Code').content + ' : ' + ret_val.at_css('Error Message').content
+        exit 1
+      end
+
     end
     def details
       response = @connection.query_azure('hostedservices/' + @name + '?embed-detail=true')
