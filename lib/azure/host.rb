@@ -24,6 +24,10 @@ class Azure
     def all
       hosted_services = Array.new
       responseXML = @connection.query_azure('hostedservices')
+      if responseXML.css('Error Code').length > 0
+        Chef::Log.fatal 'Error Accessing Azure Services:' + responseXML.at_css('Error Code').content + ' : ' + responseXML.at_css('Error Message').content
+        exit 1
+      end
       servicesXML = responseXML.css('HostedServices HostedService')
       servicesXML.each do |serviceXML|
         host = Host.new(@connection)
@@ -46,7 +50,7 @@ class Azure
     def delete(name)
       if self.exists name
           servicecall = "hostedservices/" + name
-        @connection.query_azure(servicecall, "delete") 
+        @connection.query_azure(servicecall, "delete")
       end
     end
   end

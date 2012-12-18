@@ -24,6 +24,10 @@ class Azure
     def all
       images = Array.new
       response = @connection.query_azure('images')
+      if response.css('Error Code').length > 0
+        Chef::Log.fatal 'Error Accessing Azure Services:' + response.at_css('Error Code').content + ' : ' + response.at_css('Error Message').content
+        exit 1
+      end
       osimages = response.css('OSImage')
       osimages.each do |image|
         item = Image.new(image)
