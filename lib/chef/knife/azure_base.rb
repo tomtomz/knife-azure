@@ -51,7 +51,8 @@ class Chef
             :short => "-H HOSTNAME",
             :long => "--azure_host_name HOSTNAME",
             :description => "Your Azure host name",
-            :proc => Proc.new { |key| Chef::Config[:knife][:azure_host_name] = key }
+            :proc => Proc.new { |key| Chef::Config[:knife][:azure_host_name] = key },
+            :default => "management.core.windows.net"
 
           option :verify_ssl_cert,
             :long => "--verify-ssl-cert",
