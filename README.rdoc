@@ -231,7 +231,6 @@ option :kerberos_keytab_file,
   :description => "The Kerberos keytab file used for authentication",
 
 option :kerberos_realm,
-  :short => "-R KERBEROS_REALM",
   :long => "--kerberos-realm KERBEROS_REALM",
   :description => "The Kerberos realm used for authentication",
 
