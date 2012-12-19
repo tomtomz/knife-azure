@@ -8,26 +8,20 @@ Follow these steps to generate the certificate
 
 1. Download the settings file from http://go.microsoft.com/fwlink/?LinkId=254432
 2. Extract the data from the ManagementCertificate field into a separate file named - cert.pfx
-3. Decode the certificate file :
+3. Decode the certificate file and convert the decoded PFX format to PEM format:
 
 ==== On Linux/Mac(Homebrew)
  base64 -d cert.pfx > cert_decoded.pfx
+ openssl pkcs12 -in cert_decoded.pfx -out managementCertificate.pem -nodes
 
 ==== On Windows
 You can decode and extract the PFX file using powershell or a free windows base 64 decoder such as http://www.fourmilab.ch/webtools/base64/base64.zip,
 
  base64.exe -d cert.pfx -> cert_decoded.pfx
 
-4. Convert the decoded PFX file to a PEM file
-
-==== On Linux/Mac(Homebrew)
- openssl pkcs12 -in cert_decoded.pfx -out managementCertificate.pem -nodes
-
-==== On Windows
  Use powershell & run following command. If openssl.exe not already installed it can be downloaded from http://www.openssl.org/related/binaries.html (Note: openssl dependents on Microsoft Visual C++ Redistributable package (x86) which must be installed for openssl to function properly).
 
  openssl base64 -d -A -in cert_decoded.pfx -out cert_decode.der
-
  openssl pkcs12 -in cert_decoded.der -out managementCertificate.pem -nodes
 
 You might be asked to enter a password which is usually blank.
