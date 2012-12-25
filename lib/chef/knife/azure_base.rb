@@ -64,6 +64,7 @@ class Chef
       def is_image_windows?
         images = connection.images
         target_image = images.all.select { |i| i.name == locate_config_value(:source_image) }
+        raise "Image #{locate_config_value(:source_image)} does not exist" if target_image.empty?
         return target_image[0].os == 'Windows'
       end
       def connection
