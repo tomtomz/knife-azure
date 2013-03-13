@@ -49,9 +49,10 @@ class Chef
 
           option :azure_host_name,
             :short => "-H HOSTNAME",
-            :long => "--azure_host_name HOSTNAME",
+            :long => "--azure-host-name HOSTNAME",
             :description => "Your Azure host name",
-            :proc => Proc.new { |key| Chef::Config[:knife][:azure_host_name] = key }
+            :proc => Proc.new { |key| Chef::Config[:knife][:azure_host_name] = key },
+            :default => "management.core.windows.net"
 
           option :verify_ssl_cert,
             :long => "--verify-ssl-cert",
@@ -69,7 +70,7 @@ class Chef
                             :azure_host_name => locate_config_value(:azure_host_name),
                             :verify_ssl_cert => locate_config_value(:verify_ssl_cert)
                           )
-                        end        
+                        end
       end
 
       def locate_config_value(key)
