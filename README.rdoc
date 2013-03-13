@@ -37,7 +37,7 @@ Depending on your system’s configuration, you may need to run this command wit
 
 ==Requirements:
 
-Due to a bug in mixlib-authentication, Chef node names must be 91 characters or shorter. Chef uses the host name by default, however the host names provided by Azure are very long. 
+Due to a bug in mixlib-authentication, Chef node names must be 91 characters or shorter. Chef uses the host name by default, however the host names provided by Azure are very long.
 
 You must use the '-N NODE_NAME' flag with 'knife azure' to specify a node name to be used by Chef that is less than 91 characters.
 
@@ -59,8 +59,9 @@ option :azure_mgmt_cert,
 
 option :azure_host_name,
   :short => "-H HOSTNAME",
-  :long => "--azure_host_name HOSTNAME",
+  :long => "--azure-host-name HOSTNAME",
   :description => "Your Azure host name",
+  :default => "management.core.windows.net"
 
 option :verify_ssl_cert,
   :long => "--verify-ssl-cert",
@@ -137,7 +138,6 @@ option :role_name,
   :description => "specifies the name for the virtual machine"
 
 option :host_name,
-  :short => "-H NAME",
   :long => "--host-name NAME",
   :description => "specifies the host name for the virtual machine"
 
@@ -182,7 +182,7 @@ knife[:azure_subscription_id] = "155a9851-88a8-49b4-98e4-58055f08f412"
 
 knife[:azure_mgmt_cert] = "ManagementCertificate.pem"
 
-knife[:azure_host_name] = "management-preview.core.windows-int.net"
+knife[:azure_host_name] = "management.core.windows.net"
 
 knife[:service_location] = 'West US'
 
