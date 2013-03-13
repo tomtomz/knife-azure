@@ -113,7 +113,6 @@ class Chef
         :description => "specifies the name for the virtual machine"
 
       option :host_name,
-        :short => "-H NAME",
         :long => "--host-name NAME",
         :description => "specifies the host name for the virtual machine"
 
