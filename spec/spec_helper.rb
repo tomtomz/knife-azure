@@ -19,6 +19,11 @@ require 'chef/knife/azure_image_list'
 require 'fileutils'
 require "securerandom"
 require 'knife-azure/version'
+require 'test/knife-utils/test_bed'
+
+
+#Create an empty mock certificate file
+FileUtils.touch('AzureLinuxCert.pem')
 
 def temp_dir
   @_temp_dir ||= Dir.mktmpdir
@@ -72,3 +77,4 @@ def is_config_present
   end
   is_config_present
 end
+
