@@ -228,7 +228,14 @@ class Azure
               xml.AdminPassword params[:admin_password]
               xml.ResetPasswordOnFirstLogon 'false'
               xml.EnableAutomaticUpdates 'false'
-
+              xml.WinRM {
+                xml.Listeners {
+                  xml.Listener {
+                    xml.Protocol "Http"
+                  }
+                }
+              }
+              xml.AdminUsername "azureuser"
               }
             end
 
