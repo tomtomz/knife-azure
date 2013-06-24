@@ -429,7 +429,9 @@ class Chef
           :tcp_endpoints => locate_config_value(:tcp_endpoints),
           :udp_endpoints => locate_config_value(:udp_endpoints),
           :bootstrap_proto => locate_config_value(:bootstrap_protocol),
-          :azure_connect_to_existing_dns => locate_config_value(:azure_connect_to_existing_dns)
+          :azure_connect_to_existing_dns => locate_config_value(:azure_connect_to_existing_dns),
+          :identity_file => locate_config_value(:identity_file),
+          :identity_file_passphrase => locate_config_value(:identity_file_passphrase)
         }
         # If user is connecting a new VM to an existing dns, then
         # the VM needs to have a unique public port. Logic below takes care of this.
@@ -467,8 +469,6 @@ class Chef
 
           server_def[:ssh_user] = locate_config_value(:ssh_user)
           server_def[:ssh_password] = locate_config_value(:ssh_password)
-          server_def[:identity_file] = locate_config_value(:identity_file)
-          server_def[:identity_file_passphrase] = locate_config_value(:identity_file_passphrase)
         end
         server_def
       end
