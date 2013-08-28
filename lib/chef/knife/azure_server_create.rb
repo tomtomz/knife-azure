@@ -196,25 +196,33 @@ class Chef
       end
 
       def tcp_test_winrm(ip_addr, port)
-	    hostname = ip_addr
-        socket = TCPSocket.new(hostname, port)
-	    return true
-      rescue SocketError
-        sleep 2
-        false
-      rescue Errno::ETIMEDOUT
-        false
-      rescue Errno::EPERM
-        false
-      rescue Errno::ECONNREFUSED
-        sleep 2
-        false
-      rescue Errno::EHOSTUNREACH
-        sleep 2
-        false
-      rescue Errno::ENETUNREACH
-        sleep 2
-        false
+        require 'httpclient'
+        endpoint = "http://#{ip_addr}:#{port}/wsman"
+        winrm = WinRM::WinRMWebService.new(
+                endpoint,
+                locate_config_value(:winrm_transport).to_sym,
+                opts =
+                 {
+                  :user => locate_config_value(:winrm_user) || "Administrator",
+                  :pass => locate_config_value(:winrm_password)
+                  }
+                )
+
+        if winrm.open_shell()
+          Chef::Log.debug("WinRM accepting connections on #{ip_addr}")
+          return true
+        else
+          return false
+        end
+        rescue GSSAPI::GssApiError
+          sleep 10
+          false
+        rescue HTTPClient::ConnectTimeoutError, SocketError, Errno::ECONNREFUSED, Errno::EHOSTUNREACH,
+          Errno::ENETUNREACH
+          sleep 2
+          false
+        rescue Errno::ETIMEDOUT, Errno::EPERM
+          false
       end
 
       def tcp_test_ssh(fqdn, sshport)
@@ -286,7 +294,10 @@ class Chef
             port = server.winrmport
 
             print "\n#{ui.color("Waiting for winrm on #{fqdn}:#{port}", :magenta)}"
-
+            load_winrm_deps
+            if not Chef::Platform.windows?
+              require 'gssapi'
+            end
             print(".") until tcp_test_winrm(fqdn,port) {
               sleep @initial_sleep_delay ||= 10
               puts("done")
@@ -298,8 +309,8 @@ class Chef
         else
           unless server && server.publicipaddress && server.sshport
             Chef::Log.fatal("server not created")
-          exit 1
-        end
+              exit 1
+          end
 
         port = server.sshport
 
@@ -344,11 +355,6 @@ class Chef
 
       def bootstrap_for_windows_node(server, fqdn, port)
         if locate_config_value(:bootstrap_protocol) == 'winrm'
-
-            load_winrm_deps
-            if not Chef::Platform.windows?
-              require 'gssapi'
-            end
 
             bootstrap = Chef::Knife::BootstrapWindowsWinrm.new
 
