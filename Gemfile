@@ -9,4 +9,5 @@ group :development do
   gem 'rake'
   gem 'mixlib-shellout'
   gem 'active_support'
+  gem 'knife-cloud', :git => 'https://github.com/opscode/knife-cloud.git'
 end
