@@ -262,6 +262,28 @@ describe 'knife-azure' do
       end
 
       context 'server' do
+        before(:all) { create_dns_name }
+        context 'create Windows VM by using publishsettings file and skip user specified --tcp-endpoints if its external port is same as winrm external port' do
+          after(:each)  { run(delete_instance_cmd(@dns_name) + append_azure_creds(is_list_cmd = true, is_identity_file= false, is_publishsettings_file= true) + " --yes") }
+          let(:command) { "knife azure server create --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows(:is_publishsettings_file) + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889" + " --tcp-endpoints 5985:5985,1234:1234"  + " --yes" }
+          it 'should succeed' do
+            match_status("should succeed")
+          end
+        end
+      end
+
+      context 'server' do
+        before(:all) { create_dns_name }
+        context 'create Linux VM by using publishsettings file and skip user specified --tcp-endpoints if its external port is same as ssh external port' do
+          after(:each)  { run(delete_instance_cmd(@dns_name) + append_azure_creds(is_list_cmd = true, is_identity_file= false, is_publishsettings_file= true) + " --yes") }
+          let(:command) { "knife azure server create --azure-dns-name #{@dns_name}" + append_azure_creds_for_linux(:is_publishsettings_file) + " --azure-source-image #{@linux_img}" + " --template-file " + get_linux_template_file_path + " --server-url http://localhost:8889" + " --tcp-endpoints 22:22,1234:1234" + " --yes" }
+          it 'should succeed' do
+            match_status("should succeed")
+          end
+        end
+      end
+
+      context 'server' do
         before(:all) { create_dns_name; create_vm_name }
         context 'create Windows VM by using standard option for azure-connect-to-existing-dns' do
           let(:command) { "knife azure server create --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889" + " --yes" }
@@ -296,6 +318,14 @@ describe 'knife-azure' do
           let(:command) { "knife azure server create --azure-vm-name #{@vm_name} --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889" + " --winrm-port 5682 --yes --azure-connect-to-existing-dns" }
           it 'should succeed' do
             match_status("should succeed")
+          end
+        end
+
+        context 'create Windows VM by using standard option and connect-to-existing-dns and duplicate tcp-endpoints' do
+          after(:each)  { run(delete_instance_cmd(@vm_name) + append_azure_creds(is_list_cmd = true) + " --yes --purge --preserve-azure-dns-name") }
+          let(:command) { "knife azure server create --azure-vm-name #{@vm_name} --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889" + " --tcp-endpoints 5682 --yes --azure-connect-to-existing-dns" }
+          it 'should succeed' do
+            match_status("should fail")
           end
         end
 
