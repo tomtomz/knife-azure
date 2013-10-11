@@ -26,7 +26,8 @@ before do
 		:azure_dns_name => 'service001',
 		:azure_vm_name => 'vm002',
 		:azure_storage_account => 'ka001testeurope',
-		:azure_vm_size => 'Small'
+		:azure_vm_size => 'Small',
+    :ssh_user => 'test-user'
     }.each do |key, value|
       Chef::Config[:knife][key] = value
     end
@@ -69,11 +70,6 @@ describe "parameter test:" do
 			@server_instance.ui.should_receive(:error)
 			expect {@server_instance.run}.to raise_error
 		end
-		it "azure_service_location" do
-			Chef::Config[:knife].delete(:azure_service_location)
-			@server_instance.ui.should_receive(:error)
-			expect {@server_instance.run}.to raise_error
-		end
 		it "azure_source_image" do
 			Chef::Config[:knife].delete(:azure_source_image)
 			@server_instance.ui.should_receive(:error)
@@ -89,6 +85,16 @@ describe "parameter test:" do
 			@server_instance.ui.should_receive(:error)
 			expect {@server_instance.run}.to raise_error
 		end
+    it "azure_service_location and azure_affinity_group not allowed" do
+      Chef::Config[:knife][:azure_affinity_group] = 'test-affinity'
+      @server_instance.ui.should_receive(:error)
+      expect {@server_instance.run}.to raise_error
+    end
+    it "azure_service_location or azure_affinity_group must be provided" do
+      Chef::Config[:knife].delete(:azure_service_location)
+      @server_instance.ui.should_receive(:error)
+      expect {@server_instance.run}.to raise_error
+    end
 	end
 
 	context "server create options" do
@@ -130,6 +136,19 @@ describe "parameter test:" do
           end
         end
 
+		it "skip user specified tcp-endpoints if its ports already use by ssh endpoint" do
+			# Default external port for ssh endpoint is 22.
+			@server_instance.config[:tcp_endpoints] = "12:22"
+			@server_instance.should_receive(:is_image_windows?).at_least(:twice).and_return(false)
+			Chef::Config[:knife][:azure_dns_name] = 'vmname' # service name to be used as vm name
+			@server_instance.run
+			testxml = Nokogiri::XML(@receivedXML)
+			testxml.css('InputEndpoint Protocol:contains("TCP")').each do | port |
+			  # Test data in @server_instance.config[:tcp_endpoints]:=> "12:22" this endpoints external port 22 is already use by ssh endpoint. So it should skip endpoint "12:22".
+			  port.parent.css("LocalPort").text.should_not eq("12")
+			end
+		end
+
 		it "advanced create" do
 			# set all params
 			Chef::Config[:knife][:azure_dns_name] = 'service001'
@@ -143,7 +162,28 @@ describe "parameter test:" do
 			test_params(testxml, Chef::Config[:knife], Chef::Config[:knife][:azure_vm_name],
 										Chef::Config[:knife][:azure_vm_name])
 		end
-	end
+
+    it "create with availability set" do
+      # set all params
+      Chef::Config[:knife][:azure_dns_name] = 'service001'
+      Chef::Config[:knife][:azure_vm_name] = 'vm002'
+      Chef::Config[:knife][:azure_storage_account] = 'ka001testeurope'
+      Chef::Config[:knife][:azure_os_disk_name] = 'os-disk'
+      Chef::Config[:knife][:azure_availability_set] = 'test-availability-set'
+      @server_instance.run
+      testxml = Nokogiri::XML(@receivedXML)
+      xml_content(testxml, 'AvailabilitySetName').should == 'test-availability-set'
+    end
+
+    it "server create with virtual network and subnet" do
+      Chef::Config[:knife][:azure_dns_name] = 'vmname'
+      Chef::Config[:knife][:azure_network_name] = 'test-network'
+      Chef::Config[:knife][:azure_subnet_name] = 'test-subnet'
+      @server_instance.run
+      testxml = Nokogiri::XML(@receivedXML)
+      xml_content(testxml, 'SubnetName').should == 'test-subnet'
+    end
+  end
 
 	context "#cleanup_and_exit" do
 		it "service leak cleanup" do
@@ -226,7 +266,7 @@ describe "cloud attributes" do
 			@bootstrap = Chef::Knife::BootstrapWindowsWinrm.new
 			Chef::Knife::BootstrapWindowsWinrm.stub(:new).and_return(@bootstrap)
 			@bootstrap.should_receive(:run)
-			@server_instance.should_receive(:is_image_windows?).any_number_of_times.and_return(true)
+			@server_instance.stub(:is_image_windows?).and_return(true)
 			Chef::Config[:knife][:bootstrap_protocol] = 'winrm'
 			Chef::Config[:knife][:winrm_user] = 'testuser'
 			Chef::Config[:knife][:winrm_password] = 'winrm_password'
@@ -250,7 +290,7 @@ describe "cloud attributes" do
 			@bootstrap = Chef::Knife::Bootstrap.new
 			Chef::Knife::Bootstrap.stub(:new).and_return(@bootstrap)
 			@bootstrap.should_receive(:run)
-			@server_instance.should_receive(:is_image_windows?).any_number_of_times.and_return(false)
+			@server_instance.stub(:is_image_windows?).and_return(false)
 			Chef::Config[:knife][:bootstrap_protocol] = 'ssh'
 			Chef::Config[:knife][:ssh_password] = 'ssh_password'
 			Chef::Config[:knife][:ssh_user] = 'ssh_user'
@@ -276,6 +316,7 @@ describe "for bootstrap protocol winrm:" do
 		Chef::Config[:knife][:bootstrap_protocol] = 'winrm'
 		Chef::Config[:knife][:winrm_user] = 'testuser'
 		Chef::Config[:knife][:winrm_password] = 'winrm_password'
+		@server_instance.ui.stub(:error)
 	end
 
 	it "check if all server params are set correctly" do
@@ -340,16 +381,29 @@ end
 describe "for bootstrap protocol ssh:" do
 	before do
 		Chef::Config[:knife][:bootstrap_protocol] = 'ssh'
+		Chef::Config[:knife][:ssh_user] = "testuser"
+		Chef::Config[:knife][:ssh_password] = "testpass"
 	end
 
 	context "windows instance:" do
 		it "successful bootstrap" do
-			pending "OC-8384-support ssh for windows vm's in knife-azure"
 			@server_instance.should_receive(:is_image_windows?).exactly(3).times.and_return(true)
 			@bootstrap = Chef::Knife::BootstrapWindowsSsh.new
 		   	Chef::Knife::BootstrapWindowsSsh.stub(:new).and_return(@bootstrap)
 		   	@bootstrap.should_receive(:run)
 		   	@server_instance.run
+		end
+		it "raise error if ssh user is missing" do
+			Chef::Config[:knife][:ssh_user] = nil
+			@server_instance.stub(:is_image_windows?).and_return(true)
+			@server_instance.ui.should_receive(:error).with("SSH User is compulsory parameter and it cannot be named 'admin*'")
+		   	expect { @server_instance.run }.to raise_error
+		end
+		it "raise error if ssh password is missing" do
+			Chef::Config[:knife][:ssh_password] = nil
+			@server_instance.stub(:is_image_windows?).and_return(true)
+			@server_instance.ui.should_receive(:error).with("SSH Password is compulsory parameter for windows image")
+		   	expect { @server_instance.run }.to raise_error
 		end
 	end
 

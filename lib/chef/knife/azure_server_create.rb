@@ -124,8 +124,13 @@ class Chef
       option :azure_service_location,
         :short => "-m LOCATION",
         :long => "--azure-service-location LOCATION",
-        :description => "Required. Specifies the geographic location - the name of the data center location that is valid for your subscription.
+        :description => "Required if not using an Affinity Group. Specifies the geographic location - the name of the data center location that is valid for your subscription.
                                       Eg: West US, East US, East Asia, Southeast Asia, North Europe, West Europe"
+
+      option :azure_affinity_group,
+        :short => "-a GROUP",
+        :long => "--azure-affinity-group GROUP",
+        :description => "Required if not using a Service Location. Specifies Affinity Group the VM should belong to."
 
       option :azure_dns_name,
         :short => "-d DNS_NAME",
@@ -153,6 +158,10 @@ class Chef
         :description => "Optional. Size of virtual machine (ExtraSmall, Small, Medium, Large, ExtraLarge)",
         :default => 'Small'
 
+      option :azure_availability_set,
+             :long => "--azure-availability-set NAME",
+             :description => "Optional. Name of availability set to add virtual machine into."
+
       option :tcp_endpoints,
         :short => "-t PORT_LIST",
         :long => "--tcp-endpoints PORT_LIST",
@@ -170,6 +179,15 @@ class Chef
         :default => false,
         :description => "Set this flag to add the new VM to an existing deployment/service. Must give the name of the existing
                                         DNS correctly in the --dns-name option"
+
+      option :azure_network_name,
+        :long => "--azure-network-name NETWORK_NAME",
+        :description => "Optional. Specifies the network of virtual machine"
+
+      option :azure_subnet_name,
+        :long => "--azure-subnet-name SUBNET_NAME",
+        :description => "Optional. Specifies the subnet of virtual machine"
+
       option :identity_file,
         :long => "--identity-file FILENAME",
         :description => "SSH identity file for authentication, optional. It is the RSA private key path. Specify either ssh-password or identity-file"
@@ -366,11 +384,9 @@ class Chef
             end
 
             bootstrap = Chef::Knife::BootstrapWindowsWinrm.new
-
-            bootstrap.config[:winrm_user] = locate_config_value(:winrm_user) || 'Administrator'
+            bootstrap.config[:winrm_user] = locate_config_value(:winrm_user)
             bootstrap.config[:winrm_password] = locate_config_value(:winrm_password)
             bootstrap.config[:winrm_transport] = locate_config_value(:winrm_transport)
-
             bootstrap.config[:winrm_port] = port
 
         elsif locate_config_value(:bootstrap_protocol) == 'ssh'
@@ -422,12 +438,18 @@ class Chef
               :azure_mgmt_cert,
               :azure_api_host_name,
               :azure_dns_name,
-              :azure_service_location,
               :azure_source_image,
               :azure_vm_size,
         ])
         if locate_config_value(:azure_connect_to_existing_dns) && locate_config_value(:azure_vm_name).nil?
           ui.error("Specify the VM name using --azure-vm-name option, since you are connecting to existing dns")
+          exit 1
+        end
+        if locate_config_value(:azure_service_location) && locate_config_value(:azure_affinity_group)
+          ui.error("Cannot specify both --azure_service_location and --azure_affinity_group, use one or the other.")
+          exit 1
+        elsif locate_config_value(:azure_service_location).nil? && locate_config_value(:azure_affinity_group).nil?
+          ui.error("Must specify either --azure_service_location or --azure_affinity_group.")
           exit 1
         end
       end
@@ -443,9 +465,11 @@ class Chef
           :azure_vm_size => locate_config_value(:azure_vm_size),
           :tcp_endpoints => locate_config_value(:tcp_endpoints),
           :udp_endpoints => locate_config_value(:udp_endpoints),
-          :bootstrap_proto => locate_config_value(:bootstrap_protocol),
           :azure_connect_to_existing_dns => locate_config_value(:azure_connect_to_existing_dns),
-          :winrm_user => locate_config_value(:winrm_user)
+          :azure_availability_set => locate_config_value(:azure_availability_set),
+          :azure_affinity_group => locate_config_value(:azure_affinity_group),
+          :azure_network_name => locate_config_value(:azure_network_name),
+          :azure_subnet_name => locate_config_value(:azure_subnet_name)
         }
         # If user is connecting a new VM to an existing dns, then
         # the VM needs to have a unique public port. Logic below takes care of this.
@@ -464,19 +488,34 @@ class Chef
 
         if is_image_windows?
           server_def[:os_type] = 'Windows'
-          if not locate_config_value(:winrm_password) or not locate_config_value(:bootstrap_protocol)
-            ui.error("WinRM Password and Bootstrapping Protocol are compulsory parameters")
-            exit 1
+          if locate_config_value(:bootstrap_protocol) == 'winrm'
+            # We can specify the AdminUsername after API version 2013-03-01. However, in this API version,
+            # the AdminUsername is a required parameter.
+            # Also, the user name cannot be Administrator, Admin, Admin1 etc, for enhanced security (provided by Azure)
+            if locate_config_value(:winrm_user).nil? || locate_config_value(:winrm_user).downcase =~ /admin*/
+              ui.error("WinRM User is compulsory parameter and it cannot be named 'admin*'")
+              exit 1
+            end
+            unless locate_config_value(:winrm_password)
+              ui.error("WinRM Password is compulsory parameter")
+              exit 1
+            end
+            server_def[:bootstrap_proto] = locate_config_value(:bootstrap_protocol)
+            server_def[:winrm_user] = locate_config_value(:winrm_user)
+            server_def[:admin_password] = locate_config_value(:winrm_password)
+          else
+            if locate_config_value(:ssh_user).nil? || locate_config_value(:ssh_user).downcase =~ /admin*/
+              ui.error("SSH User is compulsory parameter and it cannot be named 'admin*'")
+              exit 1
+            end
+            unless locate_config_value(:ssh_password)
+              ui.error("SSH Password is compulsory parameter for windows image")
+              exit 1
+            end
+            server_def[:bootstrap_proto] = 'ssh'
+            server_def[:ssh_user] = locate_config_value(:ssh_user)
+            server_def[:admin_password] = locate_config_value(:ssh_password)
           end
-          # We can specify the AdminUsername after API version 2013-03-01. However, in this API version,
-          # the AdminUsername is a required parameter.
-          # Also, the user name cannot be Administrator, Admin, Admin1 etc, for enhanced security (provided by Azure)
-          if locate_config_value(:winrm_user).nil? || locate_config_value(:winrm_user).downcase =~ /admin*/
-            ui.error("WinRM User is compulsory parameter and it cannot be named 'admin*'")
-            exit
-          end
-          server_def[:admin_password] = locate_config_value(:winrm_password)
-          server_def[:bootstrap_proto] = locate_config_value(:bootstrap_protocol)
         else
           server_def[:os_type] = 'Linux'
           server_def[:bootstrap_proto] = 'ssh'

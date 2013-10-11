@@ -119,7 +119,12 @@ class Azure
              break if @connection.query_azure(servicecall, "get").search("AttachedTo").text == ""
              if attempt == 12 then puts "The associated disk could not be deleted due to time out." else sleep 25 end
           end
-          @connection.query_azure(servicecall, "delete")
+
+          unless params[:preserve_azure_vhd]
+           @connection.query_azure(servicecall, 'delete', '', 'comp=media')
+          else
+            @connection.query_azure(servicecall, 'delete')
+          end
 
           if params[:delete_azure_storage_account]
             storage_account_name = xml_content(storage_account, "MediaLink")
@@ -222,7 +227,11 @@ class Azure
               xml.AdminPassword params[:admin_password]
               xml.ResetPasswordOnFirstLogon 'false'
               xml.EnableAutomaticUpdates 'false'
-              xml.AdminUsername params[:winrm_user]
+              if params[:bootstrap_proto] == "winrm"
+                xml.AdminUsername params[:winrm_user]
+              else
+                xml.AdminUsername params[:ssh_user]
+              end
               }
             end
 
@@ -282,8 +291,16 @@ class Azure
               end
             end
             }
+            if params[:azure_subnet_name]
+              xml.SubnetNames {
+                xml.SubnetName params[:azure_subnet_name]
+              }
+            end
           }
           }
+          if params[:azure_availability_set]
+            xml.AvailabilitySetName params[:azure_availability_set]
+          end
           xml.Label Base64.encode64(params[:azure_vm_name]).strip
           xml.OSVirtualHardDisk {
             disk_name = params[:azure_os_disk_name] || "disk_" + SecureRandom.uuid
