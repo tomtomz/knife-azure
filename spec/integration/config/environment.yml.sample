@@ -27,4 +27,6 @@ development:
   winrm_user: winrm_user
   winrm_password: winrm_password
   azure_linux_image: azure_linux_img
-  azure_windows_image: azure_windows_img  
+  azure_windows_image: azure_windows_img
+  win_ssh_user: win_ssh_user
+  win_ssh_password: win_ssh_password

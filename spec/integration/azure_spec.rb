@@ -70,6 +70,21 @@ def append_azure_creds_for_windows(*options)
   azure_creds_cmd
 end
 
+def append_azure_creds_for_windows_ssh(*options)
+  
+  is_list_cmd = options.include?(:is_list_cmd) ? true : false
+  is_ssh_user = options.include?(:is_ssh_user) ? false : true
+  is_ssh_password = options.include?(:is_ssh_password) ? false : true
+  is_identity_file = options.include?(:is_identity_file) ?  true : false
+  is_publishsettings_file = options.include?(:is_publishsettings_file) ?  true : false
+  
+  azure_config = YAML.load(File.read(File.expand_path("../config/environment.yml", __FILE__)))
+  azure_creds_cmd = append_azure_creds(is_list_cmd, is_identity_file, is_publishsettings_file)
+  azure_creds_cmd = azure_creds_cmd + " --ssh-user #{azure_config['development']['win_ssh_user']}" if is_ssh_user
+  azure_creds_cmd = azure_creds_cmd + " --ssh-password #{azure_config['development']['win_ssh_password']}" if is_ssh_password
+  azure_creds_cmd
+end
+
 def delete_instance_cmd(vm_name)
   "knife azure server delete #{vm_name}" 
 end
@@ -284,16 +299,27 @@ describe 'knife-azure' do
       end
 
       context 'server' do
+        before(:all) { create_vm_name }
+        context 'create Linux VM  and use auto dns name if user not specified --azure-dns-name' do
+          after(:each)  { run(delete_instance_cmd(@vm_name) + append_azure_creds(is_list_cmd = true, is_identity_file= false, is_publishsettings_file= true) + " --yes") }
+          let(:command) { "knife azure server create --azure-vm-name #{@vm_name}" + append_azure_creds_for_linux(:is_publishsettings_file) + " --azure-source-image #{@linux_img}" + " --template-file " + get_linux_template_file_path + " --server-url http://localhost:8889" + " --yes" }
+          it 'should succeed' do
+            match_status("should succeed")
+          end
+        end
+      end
+
+      context 'server' do
         before(:all) { create_dns_name; create_vm_name }
         context 'create Windows VM by using standard option for azure-connect-to-existing-dns' do
-          let(:command) { "knife azure server create --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889" + " --yes" }
+          let(:command) { "knife azure server create --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889 --ssh-port 2121" + " --yes" }
           it 'should succeed' do
             match_status("should succeed")
           end
         end
 
-        context 'create Windows VM by using standard option and connect-to-existing-dns' do
-          let(:command) { "knife azure server create --azure-vm-name #{@vm_name} --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889" + " --yes --azure-connect-to-existing-dns" }
+        context 'create Windows VM by using standard option, connect-to-existing-dns option, ssh-port 5985 and bootstrap protocol ssh' do
+          let(:command) { "knife azure server create --azure-vm-name #{@vm_name} --azure-dns-name #{@dns_name}" + append_azure_creds_for_windows_ssh + " --azure-source-image #{@windows_img}" + " --template-file " + get_windows_msi_template_file_path + " --server-url http://localhost:8889  --ssh-port 5985" + " --yes --azure-connect-to-existing-dns" }
           it 'should succeed' do
             match_status("should succeed")
           end
@@ -361,14 +387,14 @@ describe 'knife-azure' do
       context 'server' do
         before(:all) { create_dns_name; create_vm_name }
         context 'create Linux VM by using standard option for azure-connect-to-existing-dns' do
-          let(:command) { "knife azure server create --azure-dns-name #{@dns_name}" + append_azure_creds_for_linux + " --azure-source-image #{@linux_img}" + " --template-file " + get_linux_template_file_path + " --server-url http://localhost:8889" + " --yes" }
+          let(:command) { "knife azure server create --azure-dns-name #{@dns_name}" + append_azure_creds_for_linux + " --azure-source-image #{@linux_img}" + " --template-file --ssh-port 1212" + get_linux_template_file_path + " --server-url http://localhost:8889" + " --yes" }
           it 'should succeed' do
             match_status("should succeed")
           end
         end
 
-        context 'create Linux VM by using standard option and connect-to-existing-dns' do
-          let(:command) { "knife azure server create --azure-vm-name #{@vm_name} --azure-dns-name #{@dns_name}" + append_azure_creds_for_linux + " --azure-source-image #{@linux_img}" + " --template-file " + get_linux_template_file_path + " --server-url http://localhost:8889" + " --yes --azure-connect-to-existing-dns" }
+        context 'create Linux VM by using standard option and connect-to-existing-dns and having ssh-port 22' do
+          let(:command) { "knife azure server create --azure-vm-name #{@vm_name} --azure-dns-name #{@dns_name}" + append_azure_creds_for_linux + " --azure-source-image #{@linux_img}" + " --template-file " + get_linux_template_file_path + " --server-url http://localhost:8889 --ssh-port 22" + " --yes --azure-connect-to-existing-dns" }
           it 'should succeed' do
             match_status("should succeed")
           end
