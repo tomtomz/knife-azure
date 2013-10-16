@@ -10,4 +10,5 @@ group :development do
   gem 'mixlib-shellout'
   gem 'active_support'
   gem 'knife-cloud', :git => 'https://github.com/opscode/knife-cloud.git'
+  gem 'knife-windows', :git => 'https://github.com/opscode/knife-windows.git'
 end
