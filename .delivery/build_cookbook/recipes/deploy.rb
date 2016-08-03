@@ -17,7 +17,6 @@ template "/tmp/knife.rb" do
   mode '0777'
 end
 
-
 secrets = data_bag_item('delivery-secrets', chef-Clogeny-knife-azure)
 
 node['delivery']['knife']['client_key'] = secrets['key']
