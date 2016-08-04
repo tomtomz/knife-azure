@@ -1,5 +1,5 @@
 default['delivery']['knife']['node_name'] = 'v-vasundhara'
-default['delivery']['knife']['chef_server_url'] = 'https://chef-server.delivery.chef.co/organizations/msys'
+default['delivery']['knife']['chef_server_url'] = 'https://chef-server.delivery.chef.co/organizations/chef'
 default['delivery']['knife']['client_key_path'] = '/tmp/client.pem'
 default['delivery']['azure']['linux_vmname'] = 'linux-vm-test1'
 default['delivery']['azurerm']['azure_subscription_id'] = 'e00d2b3f-3b94-4dfc-ae8e-ca34c8ba1a99'
