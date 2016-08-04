@@ -19,9 +19,14 @@ end
 
 secrets = get_project_secrets
 
+node['delivery']['knife']['client_key'] = secrets['key']
+
 template '/tmp/client.pem' do
   source "client.erb"
   mode '0777'
+  variables ({
+    :key => secrets['key']
+  })
 end
 
 execute "gem_install_knife_azure" do
