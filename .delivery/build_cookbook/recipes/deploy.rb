@@ -25,6 +25,7 @@ template '/tmp/client.pem' do
   variables ({
     :key => secrets['key']
   })
+  notifies :run, 'execute[gem_install_knife_azure]', :immediately
 end
 
 execute "gem_install_knife_azure" do
