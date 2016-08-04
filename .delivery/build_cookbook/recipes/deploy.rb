@@ -5,6 +5,7 @@
 # Copyright (c) 2016 The Authors, All Rights Reserved.
 
 gem_build_path = "#{node['delivery']['workspace']['repo']}".gsub("acceptance/deploy", "build/publish")
+secrets = get_project_secrets
 
 cookbook_file '/tmp/azure-credentials.publishsettings' do
   source 'azure-credentials.publishsettings'
@@ -15,9 +16,13 @@ end
 template "/tmp/knife.rb" do
   source "knife.erb"
   mode '0777'
+  variables ({
+    :azure_subscription_id => secrets['azure_subscription_id'],
+    :azure_tenant_id => secrets['azure_tenant_id'],
+    :azure_client_id => secrets['azure_client_id'],
+    :azure_client_secret => secrets['azure_client_secret']
+  })
 end
-
-secrets = get_project_secrets
 
 template '/tmp/client.pem' do
   source "client.erb"
