@@ -7,10 +7,12 @@
 gem_build_path = "#{node['delivery']['workspace']['repo']}".gsub("acceptance/deploy", "build/publish")
 secrets = get_project_secrets
 
-cookbook_file '/tmp/azure-credentials.publishsettings' do
-  source 'azure-credentials.publishsettings'
+template "/tmp/azure-credentials.publishsettings" do
+  source "azure_credentials.erb"
   mode '0777'
-  action :create
+  variables ({
+    :azure_publish_settings => secrets['azure_publish_settings']
+  })
 end
 
 template "/tmp/knife.rb" do
