@@ -104,3 +104,21 @@ execute "knife_azurerm_server_delete_windows" do
   command "knife azurerm server delete #{node['delivery']['azurerm']['windows_vmname']} --azure-resource-group-name pipeline-rgp --node-name #{node['delivery']['azurerm']['windows_vmname']} --delete-resource-group --purge -y -c /tmp/knife.rb -VV"
   action :nothing
 end
+
+if demo_delivery_stage == 'delivered'
+  #########################################################################
+  # PUSH TO GITHUB
+  #########################################################################
+  delivery_bus_secrets = get_project_secrets
+
+  delivery_github 'Push knife-azure to demo_branch on GitHub' do
+    repo_path delivery_workspace_repo
+    cache_path delivery_workspace_cache
+    branch demo_delivery_pipeline
+    deploy_key delivery_bus_secrets['github_private_key']
+    remote_name node['knife_azure']['remote_name']
+    remote_url node['knife_azure']['remote_url']
+
+    action :push
+  end
+end
