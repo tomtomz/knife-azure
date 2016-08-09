@@ -7,6 +7,16 @@
 gem_build_path = "#{node['delivery']['workspace']['repo']}".gsub("acceptance/deploy", "build/publish")
 secrets = get_project_secrets
 
+file '/tmp/azure-credentials.publishsettings' do
+  action :delete
+  only_if { File.exist? '/tmp/azure-credentials.publishsettings' }
+end
+
+file '/tmp/knife.rb' do
+  action :delete
+  only_if { File.exist? '/tmp/knife.rb' }
+end
+
 template "/tmp/azure-credentials.publishsettings" do
   source "azure_credentials.erb"
   mode '0777'
