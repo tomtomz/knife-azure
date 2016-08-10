@@ -68,19 +68,19 @@ execute "knife_azurerm_server_create" do
   cwd "#{node['delivery']['workspace']['repo']}"
   command "knife azurerm server create --azure-resource-group-name build-test-grp --azure-vm-name #{node['delivery']['azurerm']['linux_vmname']} --node-name #{node['delivery']['azurerm']['linux_vmname']} --azure-service-location westus --azure-image-os-type ubuntu -x azure -P azure@123 -c /tmp/knife.rb -VV"
   action :nothing
-  notifies :run, 'execute[knife_azurerm_server_delete]', :immediately
-end
-
-execute "knife_azurerm_server_delete" do
-  cwd "#{node['delivery']['workspace']['repo']}"
-  command "knife azurerm server delete #{node['delivery']['azurerm']['linux_vmname']} --azure-resource-group-name build-test-grp --node-name #{node['delivery']['azurerm']['linux_vmname']} --purge -y -c /tmp/knife.rb -VV"
-  action :nothing
   notifies :run, 'execute[knife_azure_server_create_windows]', :immediately
 end
 
 execute "knife_azure_server_create_windows" do
   cwd "#{node['delivery']['workspace']['repo']}"
   command "knife azure server create --azure-vm-name #{node['delivery']['azure']['windows_vmname']} --node-name #{node['delivery']['azure']['windows_vmname']} --azure-source-image bd507d3a70934695bc2128e3e5a255ba__RightImage-Windows-2012R2-x64-v14.2 --bootstrap-protocol cloud-api --azure-service-location 'West US' -x azure -P azure@123 --azure-publish-settings-file /tmp/azure-credentials.publishsettings -c /tmp/knife.rb -VV"
+  action :nothing
+  notifies :run, 'execute[knife_azurerm_server_create_windows]', :immediately
+end
+
+execute "knife_azurerm_server_create_windows" do
+  cwd "#{node['delivery']['workspace']['repo']}"
+  command "knife azurerm server create --azure-resource-group-name build-test-grp --azure-vm-name #{node['delivery']['azurerm']['windows_vmname']} --node-name #{node['delivery']['azurerm']['windows_vmname']} --azure-service-location westus --azure-image-os-type windows --azure-image-reference-offer WindowsServer --azure-image-reference-publisher MicrosoftWindowsServer --azure-image-reference-sku 2012-R2-Datacenter -x azure -P azure@123 -c /tmp/knife.rb -VV"
   action :nothing
   notifies :run, 'execute[knife_azure_server_delete_windows]', :immediately
 end
@@ -89,12 +89,12 @@ execute "knife_azure_server_delete_windows" do
   cwd "#{node['delivery']['workspace']['repo']}"
   command "knife azure server delete #{node['delivery']['azure']['windows_vmname']} --node-name #{node['delivery']['azure']['windows_vmname']} --azure-publish-settings-file /tmp/azure-credentials.publishsettings --purge -c /tmp/knife.rb -y -VV"
   action :nothing
-  notifies :run, 'execute[knife_azurerm_server_create_windows]', :immediately
+  notifies :run, 'execute[knife_azurerm_server_delete]', :immediately
 end
 
-execute "knife_azurerm_server_create_windows" do
+execute "knife_azurerm_server_delete" do
   cwd "#{node['delivery']['workspace']['repo']}"
-  command "knife azurerm server create --azure-resource-group-name build-test-grp --azure-vm-name #{node['delivery']['azurerm']['windows_vmname']} --node-name #{node['delivery']['azurerm']['windows_vmname']} --azure-service-location westus --azure-image-os-type windows --azure-image-reference-offer WindowsServer --azure-image-reference-publisher MicrosoftWindowsServer --azure-image-reference-sku 2012-R2-Datacenter -x azure -P azure@123 -c /tmp/knife.rb -VV"
+  command "knife azurerm server delete #{node['delivery']['azurerm']['linux_vmname']} --azure-resource-group-name build-test-grp --node-name #{node['delivery']['azurerm']['linux_vmname']} --purge -y -c /tmp/knife.rb -VV"
   action :nothing
   notifies :run, 'execute[knife_azurerm_server_delete_windows]', :immediately
 end
