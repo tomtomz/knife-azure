@@ -6,6 +6,10 @@
 
 gem_build_path = "#{node['delivery']['workspace']['repo']}".gsub("acceptance/deploy", "build/publish")
 secrets = get_project_secrets
+delivery_bus_secrets = DeliverySugar::ChefServer.new.encrypted_data_bag_item('delivery-bus', 'secrets')
+
+Chef::Log.debug("Github Repo:")
+Chef::Log.debug(delivery_bus_secrets['github_private_key'])
 
 file '/tmp/azure-credentials.publishsettings' do
   action :delete
