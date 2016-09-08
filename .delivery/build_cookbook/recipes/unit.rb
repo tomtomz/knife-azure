@@ -4,6 +4,7 @@
 #
 # Copyright (c) 2016 The Authors, All Rights Reserved.
 
+=begin
 execute 'bundle install' do
   cwd "#{node['delivery']['workspace']['repo']}"
   command 'bundle install --path .bundle'
@@ -15,3 +16,4 @@ execute 'unit_test' do
   command 'bundle exec rspec spec/unit'
   action :nothing
 end
+=end

@@ -6,11 +6,8 @@
 
 gem_build_path = "#{node['delivery']['workspace']['repo']}".gsub("acceptance/deploy", "build/publish")
 secrets = get_project_secrets
-delivery_bus_secrets = DeliverySugar::ChefServer.new.encrypted_data_bag_item('delivery-bus', 'secrets')
 
-Chef::Log.debug("Github Repo:")
-Chef::Log.debug(delivery_bus_secrets['github_private_key'])
-
+=begin
 file '/tmp/azure-credentials.publishsettings' do
   action :delete
   only_if { File.exist? '/tmp/azure-credentials.publishsettings' }
@@ -108,6 +105,7 @@ execute "knife_azurerm_server_delete_windows" do
   command "knife azurerm server delete #{node['delivery']['azurerm']['windows_vmname']} --azure-resource-group-name pipeline-rgp --node-name #{node['delivery']['azurerm']['windows_vmname']} --delete-resource-group --purge -y -c /tmp/knife.rb -VV"
   action :nothing
 end
+=end
 
 if delivery_stage == 'delivered'
   #########################################################################

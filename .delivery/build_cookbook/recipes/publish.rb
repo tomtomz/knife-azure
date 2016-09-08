@@ -4,7 +4,9 @@
 #
 # Copyright (c) 2016 The Authors, All Rights Reserved.
 
+=begin
 execute 'gem build knife-azure.gemspec' do
   cwd "#{node['delivery']['workspace']['repo']}"
   command "gem build knife-azure.gemspec -V"
 end
+=end
