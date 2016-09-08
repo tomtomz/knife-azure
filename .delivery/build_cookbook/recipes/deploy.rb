@@ -105,16 +105,16 @@ execute "knife_azurerm_server_delete_windows" do
   action :nothing
 end
 
-if demo_delivery_stage == 'delivered'
+if delivery_stage == 'delivered'
   #########################################################################
   # PUSH TO GITHUB
   #########################################################################
-  delivery_bus_secrets = get_project_secrets
+  delivery_bus_secrets = DeliverySugar::ChefServer.new.encrypted_data_bag_item('delivery-bus', 'secrets')
 
   delivery_github 'Push knife-azure to demo_branch on GitHub' do
     repo_path delivery_workspace_repo
     cache_path delivery_workspace_cache
-    branch demo_delivery_pipeline
+    branch delivery_pipeline
     deploy_key delivery_bus_secrets['github_private_key']
     remote_name node['knife_azure']['remote_name']
     remote_url node['knife_azure']['remote_url']

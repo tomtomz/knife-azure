@@ -3,10 +3,10 @@
 #
 # @return [String]
 #
-def demo_delivery_pipeline
+def delivery_pipeline
   change.pipeline
 end
 
-def demo_delivery_stage
+def delivery_stage
   change.stage
 end
