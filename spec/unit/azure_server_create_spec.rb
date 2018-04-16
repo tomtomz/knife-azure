@@ -95,6 +95,13 @@ describe Chef::Knife::AzureServerCreate do
         expect {@server_instance.run}.to raise_error(SystemExit)
       end
 
+      it "raise error if neither provided --azure-dns-name nor --azure-vm-name" do
+        Chef::Config[:knife].delete(:azure_dns_name)
+        Chef::Config[:knife].delete(:azure_vm_name)
+        expect(@server_instance.ui).to receive(:error)
+        expect {@server_instance.run}.to raise_error(SystemExit)
+      end
+
       context "when winrm authentication protocol invalid" do
         it "raise error" do
           Chef::Config[:knife][:winrm_authentication_protocol] = "invalide"

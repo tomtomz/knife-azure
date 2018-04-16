@@ -125,6 +125,75 @@ class Chef
 
       # validate command pre-requisites (cli options)
       def validate_params!
+        if locate_config_value(:winrm_password) && (locate_config_value(:winrm_password).length <= 6 && locate_config_value(:winrm_password).length >= 72)
+          ui.error("The supplied password must be 6-72 characters long and meet password complexity requirements")
+          exit 1
+        end
+
+        if locate_config_value(:ssh_password) && (locate_config_value(:ssh_password).length <= 6 && locate_config_value(:ssh_password).length >= 72)
+          ui.error("The supplied password must be 6-72 characters long and meet password complexity requirements")
+          exit 1
+        end
+
+        if locate_config_value(:azure_connect_to_existing_dns) && locate_config_value(:azure_vm_name).nil?
+          ui.error("Specify the VM name using --azure-vm-name option, since you are connecting to existing dns")
+          exit 1
+        end
+
+        if locate_config_value(:azure_service_location) && locate_config_value(:azure_affinity_group)
+          ui.error("Cannot specify both --azure-service-location and --azure-affinity-group, use one or the other.")
+          exit 1
+        elsif locate_config_value(:azure_service_location).nil? && locate_config_value(:azure_affinity_group).nil?
+          ui.error("Must specify either --azure-service-location or --azure-affinity-group.")
+          exit 1
+        end
+
+        if locate_config_value(:winrm_authentication_protocol) && ! %w{basic negotiate kerberos}.include?(locate_config_value(:winrm_authentication_protocol))
+          ui.error("Invalid value for --winrm-authentication-protocol option. Use valid protocol values i.e [basic, negotiate, kerberos]")
+          exit 1
+        end
+
+        if !(service.valid_image?(locate_config_value(:azure_source_image)))
+          ui.error("Image provided is invalid")
+          exit 1
+        end
+
+        # Validate join domain requirements.
+        if locate_config_value(:azure_domain_name) || locate_config_value(:azure_domain_user)
+          if locate_config_value(:azure_domain_user).nil? || locate_config_value(:azure_domain_passwd).nil?
+            ui.error("Must specify both --azure-domain-user and --azure-domain-passwd.")
+            exit 1
+          end
+        end
+
+        if locate_config_value(:winrm_transport) == "ssl" && locate_config_value(:thumbprint).nil? && ( locate_config_value(:winrm_ssl_verify_mode).nil? || locate_config_value(:winrm_ssl_verify_mode) == :verify_peer )
+          ui.error("The SSL transport was specified without the --thumbprint option. Specify a thumbprint, or alternatively set the --winrm-ssl-verify-mode option to 'verify_none' to skip verification.")
+          exit 1
+        end
+
+        if locate_config_value(:extended_logs) && locate_config_value(:bootstrap_protocol) != 'cloud-api'
+          ui.error("--extended-logs option works with --bootstrap-protocol cloud-api")
+          exit 1
+        end
+
+        if locate_config_value(:bootstrap_protocol) == 'cloud-api' && locate_config_value(:azure_vm_name).nil? && locate_config_value(:azure_dns_name).nil?
+          ui.error("Must Specify the DNS name using --azure-dns-name or VM name using --azure-vm-name option")
+          exit 1
+        end
+
+        if locate_config_value(:daemon)
+          unless is_image_windows?
+            raise ArgumentError, "The daemon option is only support for Windows nodes."
+          end
+
+          unless  locate_config_value(:bootstrap_protocol) == 'cloud-api'
+            raise ArgumentError, "--daemon option works with --bootstrap-protocol cloud-api"
+          end
+
+          unless %w{none service task}.include?(locate_config_value(:daemon))
+            raise ArgumentError, "Invalid value for --daemon option. Use valid daemon values i.e 'none', 'service' and 'task'."
+          end
+        end
       end
 
       # validates keys
